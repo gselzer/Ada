@@ -1,0 +1,7 @@
+name: ada
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - numpy
+prefix: /home/gselzer/mambaforge/envs/ada
