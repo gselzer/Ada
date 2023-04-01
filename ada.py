@@ -1,18 +1,19 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 app = Flask(__name__)
-import cmd
+import cmd, io, sys
 
-@app.route('/')
-def hello_world():
-    return render_template("foo.html")
-
-@app.route("/process", methods=["POST"])
-def process():
-    json_kwargs = dict(
-        output="hello world"
-    )
-    return jsonify(**json_kwargs)
-
+class CaptureStdout(list):
+    """
+        Stolen from [here](https://stackoverflow.com/questions/16571150/how-to-capture-stdout-output-from-a-python-function-call)
+    """
+    def __enter__(self):
+        self._stdout = sys.stdout
+        sys.stdout = self._stringio = io.StringIO()
+        return self
+    def __exit__(self, *args):
+        self.extend(self._stringio.getvalue().splitlines())
+        del self._stringio    # free up some memory
+        sys.stdout = self._stdout
 
 class AdaShell(cmd.Cmd):
     intro = 'Ada Shell is happy to help!.   Type help or ? to list commands.\n'
@@ -27,6 +28,9 @@ class AdaShell(cmd.Cmd):
 
         :param line: The line to execute
         """
+        self.process_line(line)
+    
+    def process_line(self, line):
         try:
             execution: str = ""
             # Save the locals so we can find the difference after executing the user's line
@@ -47,7 +51,25 @@ class AdaShell(cmd.Cmd):
     
     def _help_the_user(self, line, e):
         print(e)
-        
+
+# Static shell instance
+ada = AdaShell()
+
+@app.route('/')
+def hello_world():
+    return render_template("foo.html")
+
+@app.route("/process", methods=["POST"])
+def process():
+    # Run the line through Ada
+    with CaptureStdout() as ada_output:
+        ada.process_line(request.form['lineEdit'])
+
+    # Send back output string
+    json_kwargs = dict(
+        output=ada_output
+    )
+    return jsonify(**json_kwargs)
 
 if __name__ == '__main__':
     AdaShell().cmdloop()

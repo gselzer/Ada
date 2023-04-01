@@ -1,5 +1,5 @@
 <!doctype html>
-<title>Holistic bedtime System Calibrator</title>
+<title>Ada</title>
 <link rel="stylesheet" href="https://unpkg.com/sakura.css@1.0.0/css/normalize.css">
 <link rel="stylesheet" href="https://unpkg.com/sakura.css@1.0.0/css/sakura-earthly.css">
 <style>
@@ -39,14 +39,13 @@
   }
 
   function parseJSON(response) {
-    return response.json();
+    return response.json()
   }
 
   function addShow(data) {
-    console.log(data)
     if (data.output != null) {
       var span_output = document.getElementById('output');
-      span_sonar.innerText = data.output;
+      span_output.innerText = data.output;
     }
   }
 
