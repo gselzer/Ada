@@ -1,5 +1,18 @@
+from flask import Flask, render_template, jsonify
+app = Flask(__name__)
 import cmd
-from turtle import *
+
+@app.route('/')
+def hello_world():
+    return render_template("foo.html")
+
+@app.route("/process", methods=["POST"])
+def process():
+    json_kwargs = dict(
+        output="hello world"
+    )
+    return jsonify(**json_kwargs)
+
 
 class AdaShell(cmd.Cmd):
     intro = 'Ada Shell is happy to help!.   Type help or ? to list commands.\n'

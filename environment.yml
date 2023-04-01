@@ -1,7 +1,9 @@
 name: ada
 channels:
+  - anaconda
   - conda-forge
 dependencies:
-  - python
+  - flask
   - numpy
-prefix: /home/gselzer/mambaforge/envs/ada
+  - python
+  - requests  # TODO: Do we actually need this?

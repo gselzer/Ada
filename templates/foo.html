@@ -1,0 +1,55 @@
+<!doctype html>
+<title>Holistic bedtime System Calibrator</title>
+<link rel="stylesheet" href="https://unpkg.com/sakura.css@1.0.0/css/normalize.css">
+<link rel="stylesheet" href="https://unpkg.com/sakura.css@1.0.0/css/sakura-earthly.css">
+<style>
+  ul { margin: 0; padding: 0; display: flex; list-style-type: none; }
+  li > * { padding: 1em; }
+  li.active > a { color: #5e5e5e; border-bottom: 2px solid #4a4a4a; }
+  label > input { width: 3em; }
+  form > * { padding-right: 1em; }
+  #result { font-weight: bold; }
+  #buttons { display: flex;}
+  #clear {margin-left: 1em;}
+</style>
+<hr>
+<p>Welcome to Ada!</p>
+<div id="textEdit">
+  <form id="line">
+    <label for="lineEdit">Enter the line here:</label><br>
+    <input type="text" id="lineEdit" name="lineEdit">
+    <input type="submit" value="Enter">
+  </form>
+</div>
+<div id="data">
+  <span>Output: <span id="output"></span></span>
+</div>
+
+<script src="https://unpkg.com/promise-polyfill@7.1.2/dist/polyfill.min.js"></script>
+<script src="https://unpkg.com/whatwg-fetch@2.0.4/fetch.js"></script>
+<script>
+  function submitLine(ev) {
+    ev.preventDefault();
+    fetch({{ url_for('process')|tojson }}, {
+      method: 'POST',
+      body: new FormData(this)
+    })
+      .then(parseJSON)
+      .then(addShow);
+  }
+
+  function parseJSON(response) {
+    return response.json();
+  }
+
+  function addShow(data) {
+    console.log(data)
+    if (data.output != null) {
+      var span_output = document.getElementById('output');
+      span_sonar.innerText = data.output;
+    }
+  }
+
+  var form = document.getElementById('line');
+  form.addEventListener('submit', submitLine);
+</script>
