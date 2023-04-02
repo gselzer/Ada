@@ -11,9 +11,17 @@
   #result { font-weight: bold; }
   #buttons { display: flex;}
   #clear {margin-left: 1em;}
+  #scriptView { font-family: 'Courier New', Courier, monospace; max-height: 50vh; overflow-y: scroll; }
+  #codeList { flex-direction: column; }
+  #codeList > li { width: 100%; }
+  #codeList > li:hover { background-color: #c8e3bf; color: grey; }
 </style>
 <hr>
 <p>Welcome to Ada!</p>
+<div id="scriptView">
+  <ul id="codeList">
+  </ul>
+</div>
 <div id="textEdit">
   <form id="line">
     <label for="lineEdit">Enter the line here:</label><br>
@@ -22,7 +30,7 @@
   </form>
 </div>
 <div id="data">
-  <span>Output: <span id="output"></span></span>
+  <span id="output"></span>
 </div>
 
 <script src="https://unpkg.com/promise-polyfill@7.1.2/dist/polyfill.min.js"></script>
@@ -43,9 +51,25 @@
   }
 
   function addShow(data) {
-    if (data.output != null) {
-      var span_output = document.getElementById('output');
-      span_output.innerText = data.output;
+    var span_output = document.getElementById('output');
+    if (data.output == null) {
+      span_output.innerText = "";
+    } else if (data.excepted) {
+        span_output.innerText = "Exception: " + data.output;
+    } else {
+        span_output.innerText = data.output;
+
+        // Create a new line for the script view
+        line_edit = document.getElementById("lineEdit");
+        newline_element = document.createElement("li");
+        newline_element.innerText = line_edit.value;
+        
+        // Add the user's input to the script view
+        code_list = document.getElementById('codeList');
+        code_list.appendChild(newline_element);
+
+        // Also, clear the input box
+        line_edit.value = "";
     }
   }
 

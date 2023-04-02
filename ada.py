@@ -31,7 +31,19 @@ class AdaShell(cmd.Cmd):
         self.process_line(line)
     
     def process_line(self, line):
+        """
+        Processes a single command, returning a dictionary to be passed to the webpage.
+
+        :para line: The line to execute
+        :returns: A dictionary
+        """
+        # Apparently defining this locally really screws with the exec call below?
+        out_dict = {
+            "excepted": False,  # Did the input result in an exception?
+            "output": None      # Output string to display for the user
+        }
         try:
+            # so I moved it to a nested function with no local variables except execution
             execution: str = ""
             # Save the locals so we can find the difference after executing the user's line
             execution += "globals()['_locals'] = {k:v for k, v in locals().items()};"
@@ -43,14 +55,23 @@ class AdaShell(cmd.Cmd):
             # Remove the tracked old locals
             execution += "globals().pop('_locals');"
             
-            # Finally, execute what we put together above
-            exec(execution, globals(), locals())
+            # The locals() call below was capturing local variables inside the process_line function,
+            # so I moved it to a nested scope
+            def do_exec():
+                # Finally, execute what we put together above
+                exec(execution, globals(), locals())
+            
+            with CaptureStdout() as output:
+                do_exec()
+            out_dict["output"] = output
         except Exception as e:
             # The user failed - help them!
-            self._help_the_user(line, e)
+            out_dict["excepted"] = True
+            out_dict["output"] = self._help_the_user(line, e)
+        return out_dict
     
     def _help_the_user(self, line, e):
-        print(e)
+        return str(e)
 
 # Static shell instance
 ada = AdaShell()
@@ -62,14 +83,10 @@ def hello_world():
 @app.route("/process", methods=["POST"])
 def process():
     # Run the line through Ada
-    with CaptureStdout() as ada_output:
-        ada.process_line(request.form['lineEdit'])
+    ada_dict = ada.process_line(request.form['lineEdit'])
 
-    # Send back output string
-    json_kwargs = dict(
-        output=ada_output
-    )
-    return jsonify(**json_kwargs)
+    # Send back output
+    return jsonify(**ada_dict)
 
 if __name__ == '__main__':
     AdaShell().cmdloop()
