@@ -15,7 +15,7 @@ mamba env create -f environment.yml
 # Launching the Server
 
 ```
-micromamba activate ada
+mamba activate ada
 flask --app ada run
 ```
 
@@ -31,6 +31,7 @@ docker push ctnelson1997/ada
 # Running Docker Container
 
 ```bash
-docker pull ctnelson1997/ada
-docker run --restart=always -d -e ENV_NAME=ada -p 5000:5000 ctnelson1997/ada
+sudo docker pull ctnelson1997/ada
+sudo docker run --restart=always -d -e ENV_NAME=ada -p 5000:5000 ctnelson1997/ada
+
 ```
