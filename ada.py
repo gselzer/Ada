@@ -80,8 +80,8 @@ ada = AdaShell()
 def hello_world():
     return render_template("foo.html")
 
-@app.route("/process", methods=["POST"])
-def process():
+@app.route("/somesupersneakyprocessurlplsdontchange", methods=["POST"])
+def somesupersneakyprocessurlplsdontchange():
     # Run the line through Ada
     ada_dict = ada.process_line(request.form['lineEdit'])
 

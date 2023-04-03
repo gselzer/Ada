@@ -38,7 +38,7 @@
 <script>
   function submitLine(ev) {
     ev.preventDefault();
-    fetch({{ url_for('process')|tojson }}, {
+    fetch({{ url_for('somesupersneakyprocessurlplsdontchange')|tojson }}, {
       method: 'POST',
       body: new FormData(this)
     })
