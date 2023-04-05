@@ -30,7 +30,7 @@
   </form>
 </div>
 <div id="data">
-  <span id="output"></span>
+  <div id="output"></div>
 </div>
 
 <script src="https://unpkg.com/promise-polyfill@7.1.2/dist/polyfill.min.js"></script>
@@ -55,7 +55,14 @@
     if (data.output == null) {
       span_output.innerText = "";
     } else if (data.excepted) {
-        span_output.innerText = "Exception: " + data.output;
+        const json = JSON.parse(data.output)
+        console.log(json)
+        span_output.innerHTML = "<p>Oopsy! I didn't understand that. Maybe you meant one of these?</p>"
+        span_output.innerHTML += Object.keys(json).map(ky => {
+          return `<h2>${ky}</h2>` + json[ky].doc.trim().split("\n").map(ln => {
+            return `<p>${ln.trim()}</p>`
+          }).join("")
+        })
     } else {
         span_output.innerText = data.output;
 

@@ -2,6 +2,7 @@ from flask import Flask, render_template, jsonify, request
 app = Flask(__name__)
 import cmd, io, sys, re
 from types import ModuleType
+import json 
 
 class CaptureStdout(list):
     """
@@ -69,7 +70,7 @@ class AdaShell(cmd.Cmd):
         if not help_pattern.match(line):
             return self._help_api(line, e)
 
-        return str(e)
+        return json.dumps(e, indent = 4) 
     
     def _help_api(self, line: str, e: Exception):
         results = {}
@@ -80,7 +81,7 @@ class AdaShell(cmd.Cmd):
                         metadata = {}
                         metadata["doc"] = getattr(v, field).__doc__
                         results[f"{k}.{field}"] = metadata
-        return str(results)
+        return json.dumps(results, indent = 4)
 
 # Static shell instance
 ada = AdaShell()
