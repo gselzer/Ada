@@ -43,23 +43,15 @@ class AdaShell(cmd.Cmd):
             "output": None      # Output string to display for the user
         }
         try:
-            # so I moved it to a nested function with no local variables except execution
-            execution: str = ""
-            # Save the locals so we can find the difference after executing the user's line
-            execution += "globals()['_locals'] = {k:v for k, v in locals().items()};"
-            execution += str(line) + ";"
-            # Fancy way of finding the difference in the local variables
-            execution += "new_keys = {k: v for k, v in set(locals().items()) ^ set(globals()['_locals'].items())};"
-            # Add all of the locals into the globals
-            execution += "globals().update(new_keys);"
-            # Remove the tracked old locals
-            execution += "globals().pop('_locals');"
-            
-            # The locals() call below was capturing local variables inside the process_line function,
-            # so I moved it to a nested scope
+            execution = str(line) + "\n"
+            # Add new locals to globals so we can use them later - the only one we DON'T want is 'line'
+            execution += """for k, v in locals().copy().items():
+                if k != "line":
+                    globals()[k] = v
+            """
             def do_exec():
                 # Finally, execute what we put together above
-                exec(execution, globals(), locals())
+                exec(execution, globals(), dict(line = line))
             
             with CaptureStdout() as output:
                 do_exec()
