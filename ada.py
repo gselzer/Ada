@@ -1,6 +1,7 @@
 from flask import Flask, render_template, jsonify, request
 app = Flask(__name__)
-import cmd, io, sys
+import cmd, io, sys, re
+from types import ModuleType
 
 class CaptureStdout(list):
     """
@@ -62,8 +63,24 @@ class AdaShell(cmd.Cmd):
             out_dict["output"] = self._help_the_user(line, e)
         return out_dict
     
-    def _help_the_user(self, line, e):
+    def _help_the_user(self, line: str, e: Exception):
+        # If the user hasn't 
+        help_pattern = re.compile(r"\s\.\(")
+        if not help_pattern.match(line):
+            return self._help_api(line, e)
+
         return str(e)
+    
+    def _help_api(self, line: str, e: Exception):
+        results = {}
+        for k, v in globals().items():
+            if isinstance(v, ModuleType):
+                for field in getattr(v, "__all__", []): 
+                    if line in field:
+                        metadata = {}
+                        metadata["doc"] = getattr(v, field).__doc__
+                        results[f"{k}.{field}"] = metadata
+        return str(results)
 
 # Static shell instance
 ada = AdaShell()
