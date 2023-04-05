@@ -1,7 +1,9 @@
 import ast, re
 import numpy as np
+from collections import defaultdict
 
-_py_assignment_regex = re.compile(r'\s*(\w+)\s*=\s*(.+)$')
+_full_script = []
+_assignments = defaultdict(list) # Maps names to AST assignment nodes
 
 class FunctionCallAggregator(ast.NodeVisitor):
   class FunctionInfo:
@@ -20,10 +22,10 @@ class FunctionCallAggregator(ast.NodeVisitor):
     info = self.FunctionInfo()
 
     # Collect data on function
-    # Get module
     # Get name
     field = getattr(node, 'func')
     if hasattr(field, 'attr'):
+      # Get module
       if hasattr(field, 'value'):
         info.module = getattr(getattr(field, 'value'), 'id')
       info.name = getattr(field, 'attr')
@@ -33,16 +35,37 @@ class FunctionCallAggregator(ast.NodeVisitor):
     for argnode in getattr(node, 'args'):
       info.args.append(argnode)
 
-    self.calls.append(info)
+    self.calls.insert(0, info)
 
     # Visit children
     for child in ast.iter_child_nodes(node):
       self.visit(child)
 
+class AssignmentCollector(ast.NodeTransformer):
+  def visit_Assign(self, assign):
+    # Set the proper line number
+    assign.lineno = len(_full_script) - 1
+
+    # Get variable name
+    ast.dump(assign.targets)
+    for target in assign.targets:
+      if target is ast.Name:
+        _assignments[target.id].append(assign)
+
+    # Visit children
+    for child in ast.iter_child_nodes(assign):
+      self.visit(child)
+
+
 def inspect_statement(statement : str):
-  # Parse function calls from statement
+  # Add statement to script
+  _full_script.append(statement)
+
+  # Parse tree
   tree = ast.parse(statement)
   print(ast.dump(tree))
+
+  # Parse function calls from statement
   function_aggregator = FunctionCallAggregator()
   function_aggregator.visit(tree)
   function_calls = function_aggregator.calls
