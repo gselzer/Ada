@@ -1,6 +1,7 @@
 from flask import Flask, render_template, jsonify, request
 app = Flask(__name__)
 import cmd, io, sys
+import image_helper
 
 class CaptureStdout(list):
     """
@@ -39,8 +40,9 @@ class AdaShell(cmd.Cmd):
         """
         # Apparently defining this locally really screws with the exec call below?
         out_dict = {
-            "excepted": False,  # Did the input result in an exception?
-            "output": None      # Output string to display for the user
+            "excepted": False,    # Did the input result in an exception?
+            "output": None,       # Output string to display for the user
+            "image_helper": None, # Image helper module's output dict
         }
         try:
             execution = str(line) + "\n"
@@ -56,6 +58,7 @@ class AdaShell(cmd.Cmd):
             with CaptureStdout() as output:
                 do_exec()
             out_dict["output"] = output
+            out_dict["image_helper"] = image_helper.inspect_statement(line)
         except Exception as e:
             # The user failed - help them!
             out_dict["excepted"] = True

@@ -5,5 +5,6 @@ channels:
 dependencies:
   - flask
   - numpy
+  - opencv
   - python
   - requests  # TODO: Do we actually need this?
