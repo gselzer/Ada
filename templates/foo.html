@@ -55,14 +55,93 @@
     if (data.output == null) {
       span_output.innerText = "";
     } else if (data.excepted) {
+        // parse the JSON
         const json = JSON.parse(data.output)
         console.log(json)
         span_output.innerHTML = "<p>Oopsy! I didn't understand that. Maybe you meant one of these?</p>"
+
+        // format docstring by creating newlines for every "\n"
         span_output.innerHTML += Object.keys(json).map(ky => {
           return `<h2>${ky}</h2>` + json[ky].doc.trim().split("\n").map(ln => {
             return `<p>${ln.trim()}</p>`
           }).join("")
         })
+        
+        // collect parameters into dictionary for pretty printing
+        Object.keys(json).map(ky => {
+          const lines = json[ky].doc.trim().split("\n");
+          console.log(lines);
+
+          let description = "";         // description of doc function 
+          const params = new Map();     // dictionary of parameters
+          const returns = new Map();    // dictionary of return variable
+          const see_also = new Map();   // dictionary of see also section
+          let examples = "";            // raw string of examples (todo change)
+
+          let currentParam = "currentParam"; // describes current key for dictionaries
+          let section = "description";       // what section in docstring we are at
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            console.log(line);
+            if(line.includes("Parameters") && lines[i+1].includes("-------")) {
+                section = "parameters";
+                currentParam = "";
+            } else if(line.includes("Returns") && lines[i+1].includes("-----")) {
+                section = "returns";
+                currentParam = "";
+            } else if(line.includes("See Also") && lines[i+1].includes("------")) {
+                section = "see_also";
+                currentParam = "";
+            } else if(line.includes("Examples") && lines[i+1].includes("------")) {
+                section = "examples";
+                currentParam = "";
+            }
+
+            if(line.match(/^[a-zA-Z0-9_ ]+:[a-zA-Z0-9_ ]*/)) {
+              // this is a parameter name
+              currentParam = line;
+              switch(section) {
+                case "parameters":
+                  params.set(currentParam, "");
+                  break;
+                case "returns":
+                  returns.set(currentParam, "");
+                  break;
+                case "see_also":
+                  see_also.set(currentParam, "");
+              }
+            } else {
+              // this is a description of the previous parameter name
+              const descriptionStr = line.trim();
+
+              if (currentParam !== "") {
+                switch(section) {
+                  case "description":
+                    description += `${descriptionStr}\n`;
+                    break;
+                  case "parameters":
+                    params.set(currentParam, params.get(currentParam) + ` ${descriptionStr}`); 
+                    break;
+                  case "returns":
+                    returns.set(currentParam, returns.get(currentParam) + ` ${descriptionStr}`);
+                    break;
+                  case "see_also":
+                    see_also.set(currentParam, see_also.get(currentParam) + ` ${descriptionStr}`);
+                    break;
+                  case "examples":
+                    examples += `${descriptionStr}\n`;
+                    break;
+                }
+              }
+            }
+          }
+          console.log(description);
+          console.log(params);
+          console.log(returns);
+          console.log(see_also);
+          console.log(examples);
+        });
+
     } else {
         span_output.innerText = data.output;
 
