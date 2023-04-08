@@ -15,6 +15,11 @@
   #codeList { flex-direction: column; }
   #codeList > li { width: 100%; }
   #codeList > li:hover { background-color: #c8e3bf; color: grey; }
+  .docelement > h2 { margin: 0.5em 0em; }
+  .docelement > p { margin: 0.5em 0em; }
+  .description { margin-top: -1em; }
+  .entry { margin-top: -1em; padding-left: 2em; }
+  .subentry { margin-top: -1em; padding-left: 2em; line-height: 1.4em; }
 </style>
 <hr>
 <p>Welcome to Ada!</p>
@@ -60,22 +65,15 @@
         console.log(json)
         span_output.innerHTML = "<p>Oopsy! I didn't understand that. Maybe you meant one of these?</p>"
 
-        // format docstring by creating newlines for every "\n"
-        span_output.innerHTML += Object.keys(json).map(ky => {
-          return `<h2>${ky}</h2>` + json[ky].doc.trim().split("\n").map(ln => {
-            return `<p>${ln.trim()}</p>`
-          }).join("")
-        })
-        
         // collect parameters into dictionary for pretty printing
-        Object.keys(json).map(ky => {
+        span_output.innerHTML += Object.keys(json).map(ky => {
           const lines = json[ky].doc.trim().split("\n");
           console.log(lines);
 
           let description = "";         // description of doc function 
           const params = new Map();     // dictionary of parameters
           const returns = new Map();    // dictionary of return variable
-          const see_also = new Map();   // dictionary of see also section
+          const see_also = [];          // list of see also section
           let examples = "";            // raw string of examples (todo change)
 
           let currentParam = "currentParam"; // describes current key for dictionaries
@@ -92,12 +90,16 @@
             } else if(line.includes("See Also") && lines[i+1].includes("------")) {
                 section = "see_also";
                 currentParam = "";
-            } else if(line.includes("Examples") && lines[i+1].includes("------")) {
+            } else if(line.includes("Examples") && lines[i+1].includes("-----")) {
                 section = "examples";
                 currentParam = "";
             }
 
-            if(line.match(/^[a-zA-Z0-9_ ]+:[a-zA-Z0-9_ ]*/)) {
+            if(section == "examples") {
+                examples += line + "\n"; 
+            }
+
+            if(line.match(/^[a-zA-Z0-9_]+ : [a-zA-Z0-9_]*/)) {
               // this is a parameter name
               currentParam = line;
               switch(section) {
@@ -107,8 +109,8 @@
                 case "returns":
                   returns.set(currentParam, "");
                   break;
-                case "see_also":
-                  see_also.set(currentParam, "");
+                case "see_also": 
+                  see_also.push(`${currentParam}`);
               }
             } else {
               // this is a description of the previous parameter name
@@ -125,12 +127,6 @@
                   case "returns":
                     returns.set(currentParam, returns.get(currentParam) + ` ${descriptionStr}`);
                     break;
-                  case "see_also":
-                    see_also.set(currentParam, see_also.get(currentParam) + ` ${descriptionStr}`);
-                    break;
-                  case "examples":
-                    examples += `${descriptionStr}\n`;
-                    break;
                 }
               }
             }
@@ -140,6 +136,40 @@
           console.log(returns);
           console.log(see_also);
           console.log(examples);
+
+          // insert prettified documentation into html
+          var prettyString = `<div class="docelement">`
+          prettyString += `<h2>${ky}</h2>`;
+
+          prettyString += `<span class="description">${description}</span>`;
+
+          prettyString += `<p><b>Parameters: </b></p>`; 
+          for(var [key, value] of params) {
+            prettyString += '<div class="entry">';
+            prettyString += `<p><b>${key}</b></p>`;
+            prettyString += `<div class="subentry">${value}</div>`;
+            prettyString += '</div>';
+          }
+          
+          prettyString += `<p><b>Returns: </b></p>`; 
+          for(var [key, value] of returns) {
+            prettyString += '<div class="entry">';
+            prettyString += `<p><b>${key}</b></p>`;
+            prettyString += `<div class="subentry">${value}</div>`;
+            prettyString += '</div>';
+          }
+
+          prettyString += `<p><b>See Also: </b></p>`; 
+          for(var str of see_also) {
+            prettyString += '<div class="entry">';
+            prettyString += `<p>${str}</p>`;
+            prettyString += '</div>';
+          }
+
+          prettyString += "<p>" + examples.split("\n").map(ln => { return `<p>${ln.trim()}</p>`}).join("") + "</p>";
+          
+          prettyString += `</div>`;
+          return prettyString;
         });
 
     } else {
