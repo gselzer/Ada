@@ -79,7 +79,18 @@ class AdaShell(cmd.Cmd):
                 for field in getattr(v, "__all__", []): 
                     if line in field:
                         metadata = {}
-                        metadata["doc"] = getattr(v, field).__doc__
+                        doc = getattr(v, field).__doc__
+                        metadata["doc"] = doc
+                        data = [s.strip() for s in re.split('\n\n\s*[a-zA-z ]+\n\s*[-]+\n\s*', getattr(v, field).__doc__)]
+                        metadata["description"] = data[0]
+                        metadata["parameters"] = data[1]
+                        params = {}
+                        param_docs = [s.strip() for s in re.split('([a-zA-Z_]*) :', data[1].strip())]
+                        for i in range(1, len(param_docs), 2):
+                            params[param_docs[i]] = param_docs[i+1]
+                        metadata["returns"] = data[2]
+                        metadata["See Also"] = data[3]
+                        metadata["Examples"] = data[4]
                         results[f"{k}.{field}"] = metadata
         return json.dumps(results, indent = 4)
 
