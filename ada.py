@@ -1,3 +1,4 @@
+from typing import List
 from flask import Flask, render_template, jsonify, request
 app = Flask(__name__)
 import cmd, io, sys, re
@@ -83,16 +84,34 @@ class AdaShell(cmd.Cmd):
                         metadata["doc"] = doc
                         data = [s.strip() for s in re.split('\n\n\s*[a-zA-z ]+\n\s*[-]+\n\s*', getattr(v, field).__doc__)]
                         metadata["description"] = data[0]
-                        metadata["parameters"] = data[1]
-                        params = {}
-                        param_docs = [s.strip() for s in re.split('([a-zA-Z_]*) :', data[1].strip())]
-                        for i in range(1, len(param_docs), 2):
-                            params[param_docs[i]] = param_docs[i+1]
-                        metadata["returns"] = data[2]
-                        metadata["See Also"] = data[3]
-                        metadata["Examples"] = data[4]
+                        metadata["parameters"] = self._split_section(data[1])
+                        metadata["returns"] = self._split_section(data[2])
+                        metadata["see_also"] = self._split_section(data[3])
+                        metadata["Examples"] = self._split_examples(data[4])
                         results[f"{k}.{field}"] = metadata
         return json.dumps(results, indent = 4)
+    
+    def _split_section(self, section: str) -> List:
+        """
+        Partitions sections formatted along the following sytax:
+
+        key: type<, optional>`
+            description
+        
+        Returns a list of tuples, where each element describes an element that was documented like the above
+        """
+        section_elements = []
+        section_split = [s.strip() for s in re.split('([a-zA-Z_]*) :', section.strip())]
+        for i in range(1, len(section_split), 2):
+            section_elements.append((section_split[i], section_split[i+1]))
+        return section_elements
+
+    def _split_examples(self, example_str: str) -> List:
+        examples = []
+        ex_docs = [s.strip() for s in re.split('(\n[^>]+\n)', example_str + "\n")]
+        for i in range(0, len(ex_docs) - 1, 2):
+            examples.append((ex_docs[i], ex_docs[i+1]))
+        return examples
 
 # Static shell instance
 ada = AdaShell()
