@@ -15,6 +15,9 @@
   #codeList { flex-direction: column; }
   #codeList > li { width: 100%; }
   #codeList > li:hover { background-color: #c8e3bf; color: grey; }
+  #imageInput { display: none; }
+  /* #imageUploadButton { border: 1px solid grey; display: inline-block; cursor: pointer } */
+  /* #imageUploadButton:hover { background-color: #f6c65f; } */
 </style>
 <hr>
 <p>Welcome to Ada!</p>
@@ -23,11 +26,15 @@
   </ul>
 </div>
 <div id="textEdit">
-  <form id="line">
-    <label for="lineEdit">Enter the line here:</label><br>
-    <input type="text" id="lineEdit" name="lineEdit">
-    <input type="submit" value="Enter">
-  </form>
+  <span>
+    <form id="line" style="display: inline-block">
+      <label for="lineEdit">Enter the line here:</label><br>
+      <input type="text" id="lineEdit" name="lineEdit">
+      <input type="submit" value="Enter">
+    </form>
+    <button id="imageUploadButton">Upload image</button>
+    <input type="file" id="imageInput" name="imageInput" accept="image/png, image/jpeg">
+  </span>
 </div>
 <div id="data">
   <div id="output"></div>
@@ -35,6 +42,7 @@
 
 <script src="https://unpkg.com/promise-polyfill@7.1.2/dist/polyfill.min.js"></script>
 <script src="https://unpkg.com/whatwg-fetch@2.0.4/fetch.js"></script>
+<!-- <script src="{{url_for('static', filename='image_upload.js')}}"></script> -->
 <script>
   function submitLine(ev) {
     ev.preventDefault();
@@ -82,4 +90,54 @@
 
   var form = document.getElementById('line');
   form.addEventListener('submit', submitLine);
+
+
+  // Image uploading code
+  const kValidFileTypes = [
+    "image/png",
+    "image/jpeg"
+  ];
+
+  window.addEventListener("load", () => {
+    const image_input = document.getElementById("imageInput");
+    const image_upload_button = document.getElementById("imageUploadButton");
+
+    image_upload_button.addEventListener("click", (ev) => {
+      image_input.click();
+      ev.preventDefault();
+    })
+    image_input.addEventListener("change", on_image_upload);
+  });
+
+  function is_valid(image_file) {
+    return kValidFileTypes.includes(image_file.type);
+  }
+
+  function on_image_upload() {
+    if (!this.files.length) return;
+
+    const file = this.files[0];
+    this.value = null;
+
+    // Check file extension
+    if (!is_valid(file)) return;
+
+    // console.log("creating img element");
+    // const img = document.createElement("img");
+    // img.src = URL.createObjectURL(file);
+    // img.onload = () => {
+      //   URL.revokeObjectURL(img.src);
+      // };
+      // document.body.appendChild(img);
+      
+    // Upload image
+    form_data = new FormData();
+    form_data.append("image", file);
+
+    fetch({{ url_for("upload")|tojson }}, {
+      method: "POST",
+      body: form_data
+    });
+  }
+  
 </script>
