@@ -35,7 +35,12 @@
 
 <script src="https://unpkg.com/promise-polyfill@7.1.2/dist/polyfill.min.js"></script>
 <script src="https://unpkg.com/whatwg-fetch@2.0.4/fetch.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js" integrity="sha512-8RnEqURPUc5aqFEN04aQEiPlSAdE0jlFS/9iGgUyNtwFnSKCXhmB6ZTNl7LnDtDWKabJIASzXrzD0K+LYexU9g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css" integrity="sha512-uf06llspW44/LZpHzHT6qBOIVODjWtv4MxCricRxkzvopAlSWnTf6hpZTFxuuZcuNE9CBQhqE0Seu1CoRk84nQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/python/python.min.js" integrity="sha512-2M0GdbU5OxkGYMhakED69bw0c1pW3Nb0PeF3+9d+SnwN1ryPx3wiDdNqK3gSM7KAU/pEV+2tFJFbMKjKAahOkQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
+  example_ids = []
+
   function submitLine(ev) {
     ev.preventDefault();
     fetch({{ url_for('somesupersneakyprocessurlplsdontchange')|tojson }}, {
@@ -55,7 +60,152 @@
     if (data.output == null) {
       span_output.innerText = "";
     } else if (data.excepted) {
+<<<<<<< Updated upstream
         span_output.innerText = "Exception: " + data.output;
+=======
+        // parse the JSON
+        const json = JSON.parse(data.output)
+        span_output.innerHTML = "<p>Oopsy! I didn't understand that. Maybe you meant one of these?</p>"
+        exampleDict = {};
+        // collect parameters into dictionary for pretty printing
+        span_output.innerHTML += Object.keys(json).map(ky => {
+          const lines = json[ky].doc.trim().split("\n");
+
+          let description = "";         // description of doc function 
+          const params = new Map();     // dictionary of parameters
+          const returns = new Map();    // dictionary of return variable
+          const see_also = [];          // list of see also section
+          let examples = "";            // raw string of examples (todo change)
+
+          let currentParam = "currentParam"; // describes current key for dictionaries
+          let section = "description";       // what section in docstring we are at
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if(line.includes("Parameters") && lines[i+1].includes("-------")) {
+                section = "parameters";
+                currentParam = "";
+            } else if(line.includes("Returns") && lines[i+1].includes("-----")) {
+                section = "returns";
+                currentParam = "";
+            } else if(line.includes("See Also") && lines[i+1].includes("------")) {
+                section = "see_also";
+                currentParam = "";
+            } else if(line.includes("Examples") && lines[i+1].includes("-----")) {
+                section = "examples";
+                currentParam = "";
+            }
+
+            if(section == "examples") {
+                examples += line + "\n"; 
+            }
+
+            if(line.match(/^[a-zA-Z0-9_]+ : [a-zA-Z0-9_]*/)) {
+              // this is a parameter name
+              currentParam = line;
+              switch(section) {
+                case "parameters":
+                  params.set(currentParam, "");
+                  break;
+                case "returns":
+                  returns.set(currentParam, "");
+                  break;
+                case "see_also": 
+                  see_also.push(`${currentParam}`);
+              }
+            } else {
+              // this is a description of the previous parameter name
+              const descriptionStr = line.trim();
+
+              if (currentParam !== "") {
+                switch(section) {
+                  case "description":
+                    description += `${descriptionStr}\n`;
+                    break;
+                  case "parameters":
+                    params.set(currentParam, params.get(currentParam) + ` ${descriptionStr}`); 
+                    break;
+                  case "returns":
+                    returns.set(currentParam, returns.get(currentParam) + ` ${descriptionStr}`);
+                    break;
+                }
+              }
+            }
+          }
+          // console.log(description);
+          // console.log(params);
+          // console.log(returns);
+          // console.log(see_also);
+          // console.log(examples);
+
+          // insert prettified documentation into html
+          var prettyString = `<div class="docelement">`
+          prettyString += `<h2>${ky}</h2>`;
+
+          prettyString += `<span class="description">${description}</span>`;
+
+          prettyString += `<p><b>Parameters: </b></p>`; 
+          for(var [key, value] of params) {
+            prettyString += '<div class="entry">';
+            prettyString += `<p><b>${key}</b></p>`;
+            prettyString += `<div class="subentry">${value}</div>`;
+            prettyString += '</div>';
+          }
+          
+          prettyString += `<p><b>Returns: </b></p>`; 
+          for(var [key, value] of returns) {
+            prettyString += '<div class="entry">';
+            prettyString += `<p><b>${key}</b></p>`;
+            prettyString += `<div class="subentry">${value}</div>`;
+            prettyString += '</div>';
+          }
+
+          prettyString += `<p><b>See Also: </b></p>`; 
+          for(var str of see_also) {
+            prettyString += '<div class="entry">';
+            prettyString += `<p>${str}</p>`;
+            prettyString += '</div>';
+          }
+
+          prettyString += `<p><b>Examples: </b></p>`; 
+          // console.log(json[ky]["Examples"])
+
+          exampleDict[ky] = json[ky]["Examples"]
+          for(i = 0; i < json[ky]["Examples"].length; i += 1) {
+            example_id = ky + i
+            example_ids.push(example_id)
+            var example = json[ky]["Examples"][i];
+            prettyString += '<textarea id=example-' + example_id + ' rows="4" cols="50">'
+            for(var codeLine of example) {
+              slicedCodeLine = codeLine.slice(4)
+              prettyString += slicedCodeLine + '\n'
+            }
+            prettyString += '</textarea>'
+            // prettyString += '<p>-</p>'
+            prettyString += '<button onclick="runExample("' + example_id + '")" style="float: right;">Run</button>'
+            prettyString += '<p id=example-result-' + example_id + '>\n</p>'
+          }
+
+          
+          
+          prettyString += `</div>`;
+          return prettyString;
+        });
+      
+      for (var example_id of example_ids) {
+        var myTextArea = document.getElementById('example-' + example_id);
+        var myCodeMirror = CodeMirror.fromTextArea(myTextArea, {
+          lineNumbers: true,
+          mode: "python",
+          styleActiveLine: true,
+          matchBrackets: true,
+          theme: 'monokai',
+          height: '10px'
+        });
+        myCodeMirror.setSize("100%", "100%")
+        runExample(example_id)
+      }
+
+>>>>>>> Stashed changes
     } else {
         span_output.innerText = data.output;
 
@@ -71,6 +221,25 @@
         // Also, clear the input box
         line_edit.value = "";
     }
+  }
+  
+  // Run the example through backend's ExampleShell
+  async function runExample(example_id) {
+    var codes = document.getElementById("example-" + example_id).value
+    codes = codes.split('\n')
+
+    let formdata = new FormData()
+    for (var i = 0; i < codes.length; i++) {
+      formdata.append(i, codes[i])      
+    }
+    formdata.append('lineCount', codes.length)
+
+    var response = await fetch({{ url_for('runExample')|tojson }}, {
+      method: 'POST',
+      body: formdata
+    })
+    console.log(response)
+    document.getElementById("example-result-" + example_id).innerHTML = response
   }
 
   var form = document.getElementById('line');
