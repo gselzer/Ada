@@ -114,9 +114,14 @@ def upload():
     filename = file.filename # Technically should validate this for security purposes
     
     # Save image
-    file.save(os.path.join(app.config['upload_folder'], filename))
+    save_path = os.path.join(app.config['upload_folder'], filename)
+    file.save(save_path)
 
-    return jsonify(**{ "status": 200 })
+    response = {
+        "filename": filename,
+        "image_path": save_path
+    }
+    return jsonify(**response)
 
 if __name__ == '__main__':
     AdaShell().cmdloop()

@@ -16,8 +16,11 @@
   #codeList > li { width: 100%; }
   #codeList > li:hover { background-color: #c8e3bf; color: grey; }
   #imageInput { display: none; }
-  /* #imageUploadButton { border: 1px solid grey; display: inline-block; cursor: pointer } */
-  /* #imageUploadButton:hover { background-color: #f6c65f; } */
+
+  .modal-div { background-color: rgba(128, 128, 128, 0.5);  position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+  .upload-menu { padding: 7px 20px; background-color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+  .upload-menu .code-done { color: grey; user-select: none; cursor: default; }
+  .upload-menu .code-selectable:hover { cursor: pointer; }
 </style>
 <hr>
 <p>Welcome to Ada!</p>
@@ -64,7 +67,6 @@
       span_output.innerText = "";
     } else if (data.excepted) {
         const json = JSON.parse(data.output)
-        console.log(json)
         span_output.innerHTML = "<p>Oopsy! I didn't understand that. Maybe you meant one of these?</p>"
         span_output.innerHTML += Object.keys(json).map(ky => {
           return `<h2>${ky}</h2>` + json[ky].doc.trim().split("\n").map(ln => {
@@ -109,6 +111,72 @@
     image_input.addEventListener("change", on_image_upload);
   });
 
+  function display_image_import_menu(response) {
+    const lineEdit = document.getElementById("lineEdit");
+    function ada_execute(line) {
+      lineEdit.value = line;
+      fetch({{ url_for('somesupersneakyprocessurlplsdontchange')|tojson }}, {
+        method: 'POST',
+        body: new FormData(form)
+      })
+        .then(parseJSON)
+        .then(addShow);
+    }
+
+    function selectable_code_click_callback_for(element) {
+      return (ev) => {
+        if (!element.classList.contains("code-done")) {
+          ada_execute(element.innerText);
+          element.classList.add("code-done");
+          element.classList.remove("code-selectable");
+        }
+      }
+    }
+
+    // Make container
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    // Dim background and make it non-interactable
+    const modal_div = document.createElement("div");
+    modal_div.classList.add("modal-div")
+    modal_div.addEventListener("click", (ev) => container.remove());
+    container.appendChild(modal_div);
+
+    // Create menu
+    const menu = document.createElement("div");
+    menu.classList.add("upload-menu");
+    container.appendChild(menu);
+
+    // Optional import
+    const import_words = document.createElement("p");
+    import_words.innerText = "If you haven't done so already,";
+    menu.appendChild(import_words);
+
+    const import_statement = document.createElement("pre");
+    import_statement.classList.add("code-selectable");
+    import_statement.innerText = "import cv2";
+    import_statement.addEventListener("click", selectable_code_click_callback_for(import_statement));
+    menu.appendChild(import_statement);
+    
+    // Load image
+    const image_path = response.image_path.replaceAll("\\", "/");
+    const load_words = document.createElement("p");
+    const input_element = document.createElement("input");
+    input_element.type = "text";
+    input_element.value = "img";
+    load_words.innerText = "Then, to load the image as a numpy array and name it ";
+    load_words.appendChild(input_element);
+    menu.appendChild(load_words);
+
+    const load_statement = document.createElement("pre");
+    load_statement.classList.add("code-selectable");
+    load_statement.innerText = `${input_element.value} = cv2.imread("${image_path}")`;
+    load_statement.addEventListener("click", selectable_code_click_callback_for(load_statement));
+    input_element.addEventListener("input", (ev) => load_statement.innerText = `${input_element.value} = cv2.imread("${image_path}")`);
+    menu.appendChild(load_statement);
+  }
+
   function is_valid(image_file) {
     return kValidFileTypes.includes(image_file.type);
   }
@@ -137,7 +205,8 @@
     fetch({{ url_for("upload")|tojson }}, {
       method: "POST",
       body: form_data
-    });
+    }).then((response) => response.json(), () => console.error("Failed to upload user-provided file"))
+    .then(display_image_import_menu);
   }
-  
+
 </script>
