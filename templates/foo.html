@@ -123,20 +123,26 @@
         .then(addShow);
     }
 
+    
+    // Make container
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    
     function selectable_code_click_callback_for(element) {
       return (ev) => {
         if (!element.classList.contains("code-done")) {
           ada_execute(element.innerText);
           element.classList.add("code-done");
           element.classList.remove("code-selectable");
+
+          // Check if that was the last selectable code element
+          if (document.querySelectorAll(".code-selectable").length == 0) {
+            container.remove();
+          }
         }
       }
     }
-
-    // Make container
-    const container = document.createElement("div");
-    document.body.appendChild(container);
-
+    
     // Dim background and make it non-interactable
     const modal_div = document.createElement("div");
     modal_div.classList.add("modal-div")
@@ -171,9 +177,19 @@
 
     const load_statement = document.createElement("pre");
     load_statement.classList.add("code-selectable");
-    load_statement.innerText = `${input_element.value} = cv2.imread("${image_path}")`;
+    function upadate_load_statement() {
+      load_statement.innerText = `${input_element.value.toString().padEnd(5)} = cv2.imread("${image_path}")`
+    }
+    upadate_load_statement();
     load_statement.addEventListener("click", selectable_code_click_callback_for(load_statement));
-    input_element.addEventListener("input", (ev) => load_statement.innerText = `${input_element.value} = cv2.imread("${image_path}")`);
+    input_element.addEventListener("input", upadate_load_statement);
+    input_element.addEventListener("change",
+      (ev) => {
+        if (input_element.value.length == 0) {
+          input_element.value = "img";
+          upadate_load_statement();
+        }
+      });
     menu.appendChild(load_statement);
   }
 

@@ -5,7 +5,7 @@ from types import ModuleType
 import json
 
 # Do some flask app config
-temp_upload_dir = tempfile.TemporaryDirectory(dir='.')
+temp_upload_dir = tempfile.TemporaryDirectory(dir='.') # Create temp folder at webroot
 app.config['upload_folder'] = temp_upload_dir.name
 
 def on_exit():
