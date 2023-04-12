@@ -20,6 +20,12 @@
   .description { margin-top: -1em; }
   .entry { margin-top: -1em; padding-left: 2em; }
   .subentry { margin-top: -1em; padding-left: 2em; line-height: 1.4em; }
+  
+  #imageInput { display: none; }
+  .modal-div { background-color: rgba(128, 128, 128, 0.5);  position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+  .upload-menu { padding: 7px 20px; background-color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+  .upload-menu .code-done { color: grey; user-select: none; cursor: default; }
+  .upload-menu .code-selectable:hover { cursor: pointer; }
 </style>
 <hr>
 <p>Welcome to Ada!</p>
@@ -28,11 +34,15 @@
   </ul>
 </div>
 <div id="textEdit">
-  <form id="line">
-    <label for="lineEdit">Enter the line here:</label><br>
-    <input type="text" id="lineEdit" name="lineEdit">
-    <input type="submit" value="Enter">
-  </form>
+  <span>
+    <form id="line" style="display: inline-block">
+      <label for="lineEdit">Enter the line here:</label><br>
+      <input type="text" id="lineEdit" name="lineEdit">
+      <input type="submit" value="Enter">
+    </form>
+    <button id="imageUploadButton">Upload image</button>
+    <input type="file" id="imageInput" name="imageInput" accept="image/png, image/jpeg">
+  </span>
 </div>
 <div id="data">
   <div id="output"></div>
@@ -40,6 +50,7 @@
 
 <script src="https://unpkg.com/promise-polyfill@7.1.2/dist/polyfill.min.js"></script>
 <script src="https://unpkg.com/whatwg-fetch@2.0.4/fetch.js"></script>
+<!-- <script src="{{url_for('static', filename='image_upload.js')}}"></script> -->
 <script>
   function submitLine(ev) {
     ev.preventDefault();
@@ -62,7 +73,6 @@
     } else if (data.excepted) {
         // parse the JSON
         const json = JSON.parse(data.output)
-        console.log(json)
         span_output.innerHTML = "<p>Oopsy! I didn't understand that. Maybe you meant one of these?</p>"
 
         // collect parameters into dictionary for pretty printing
@@ -191,4 +201,137 @@
 
   var form = document.getElementById('line');
   form.addEventListener('submit', submitLine);
+
+
+  // Image uploading code
+  const kValidFileTypes = [
+    "image/png",
+    "image/jpeg"
+  ];
+
+  window.addEventListener("load", () => {
+    const image_input = document.getElementById("imageInput");
+    const image_upload_button = document.getElementById("imageUploadButton");
+
+    image_upload_button.addEventListener("click", (ev) => {
+      image_input.click();
+      ev.preventDefault();
+    })
+    image_input.addEventListener("change", on_image_upload);
+  });
+
+  function display_image_import_menu(response) {
+    const lineEdit = document.getElementById("lineEdit");
+    function ada_execute(line) {
+      lineEdit.value = line;
+      fetch({{ url_for('somesupersneakyprocessurlplsdontchange')|tojson }}, {
+        method: 'POST',
+        body: new FormData(form)
+      })
+        .then(parseJSON)
+        .then(addShow);
+    }
+
+    
+    // Make container
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    
+    function selectable_code_click_callback_for(element) {
+      return (ev) => {
+        if (!element.classList.contains("code-done")) {
+          ada_execute(element.innerText);
+          element.classList.add("code-done");
+          element.classList.remove("code-selectable");
+
+          // Check if that was the last selectable code element
+          if (document.querySelectorAll(".code-selectable").length == 0) {
+            container.remove();
+          }
+        }
+      }
+    }
+    
+    // Dim background and make it non-interactable
+    const modal_div = document.createElement("div");
+    modal_div.classList.add("modal-div")
+    modal_div.addEventListener("click", (ev) => container.remove());
+    container.appendChild(modal_div);
+
+    // Create menu
+    const menu = document.createElement("div");
+    menu.classList.add("upload-menu");
+    container.appendChild(menu);
+
+    // Optional import
+    const import_words = document.createElement("p");
+    import_words.innerText = "If you haven't done so already,";
+    menu.appendChild(import_words);
+
+    const import_statement = document.createElement("pre");
+    import_statement.classList.add("code-selectable");
+    import_statement.innerText = "import cv2";
+    import_statement.addEventListener("click", selectable_code_click_callback_for(import_statement));
+    menu.appendChild(import_statement);
+    
+    // Load image
+    const image_path = response.image_path.replaceAll("\\", "/");
+    const load_words = document.createElement("p");
+    const input_element = document.createElement("input");
+    input_element.type = "text";
+    input_element.value = "img";
+    load_words.innerText = "Then, to load the image as a numpy array and name it ";
+    load_words.appendChild(input_element);
+    menu.appendChild(load_words);
+
+    const load_statement = document.createElement("pre");
+    load_statement.classList.add("code-selectable");
+    function upadate_load_statement() {
+      load_statement.innerText = `${input_element.value.toString().padEnd(5)} = cv2.imread("${image_path}")`
+    }
+    upadate_load_statement();
+    load_statement.addEventListener("click", selectable_code_click_callback_for(load_statement));
+    input_element.addEventListener("input", upadate_load_statement);
+    input_element.addEventListener("change",
+      (ev) => {
+        if (input_element.value.length == 0) {
+          input_element.value = "img";
+          upadate_load_statement();
+        }
+      });
+    menu.appendChild(load_statement);
+  }
+
+  function is_valid(image_file) {
+    return kValidFileTypes.includes(image_file.type);
+  }
+
+  function on_image_upload() {
+    if (!this.files.length) return;
+
+    const file = this.files[0];
+    this.value = null;
+
+    // Check file extension
+    if (!is_valid(file)) return;
+
+    // console.log("creating img element");
+    // const img = document.createElement("img");
+    // img.src = URL.createObjectURL(file);
+    // img.onload = () => {
+      //   URL.revokeObjectURL(img.src);
+      // };
+      // document.body.appendChild(img);
+      
+    // Upload image
+    form_data = new FormData();
+    form_data.append("image", file);
+
+    fetch({{ url_for("upload")|tojson }}, {
+      method: "POST",
+      body: form_data
+    }).then((response) => response.json(), () => console.error("Failed to upload user-provided file"))
+    .then(display_image_import_menu);
+  }
+
 </script>

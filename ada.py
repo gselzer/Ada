@@ -1,9 +1,17 @@
 from typing import List
 from flask import Flask, render_template, jsonify, request
 app = Flask(__name__)
-import cmd, io, sys, re
+import atexit, cmd, io, sys, tempfile, re, os
 from types import ModuleType
-import json 
+import json
+
+# Do some flask app config
+temp_upload_dir = tempfile.TemporaryDirectory(dir='.') # Create temp folder at webroot
+app.config['upload_folder'] = temp_upload_dir.name
+
+def on_exit():
+    temp_upload_dir.cleanup()
+atexit.register(on_exit)
 
 class CaptureStdout(list):
     """
@@ -127,6 +135,23 @@ def somesupersneakyprocessurlplsdontchange():
 
     # Send back output
     return jsonify(**ada_dict)
+
+@app.route("/upload", methods=["POST"])
+def upload():
+    file = request.files['image']
+
+    # Find filename to save as
+    filename = file.filename # Technically should validate this for security purposes
+    
+    # Save image
+    save_path = os.path.join(app.config['upload_folder'], filename)
+    file.save(save_path)
+
+    response = {
+        "filename": filename,
+        "image_path": save_path
+    }
+    return jsonify(**response)
 
 if __name__ == '__main__':
     AdaShell().cmdloop()
