@@ -1,9 +1,6 @@
-<<<<<<< Updated upstream
-from flask import Flask, render_template, jsonify, request
-=======
 from typing import List
 from flask import Flask, render_template, jsonify, request, make_response
->>>>>>> Stashed changes
+
 app = Flask(__name__)
 import cmd, io, sys
 
@@ -67,10 +64,6 @@ class AdaShell(cmd.Cmd):
             out_dict["output"] = self._help_the_user(line, e)
         return out_dict
     
-<<<<<<< Updated upstream
-    def _help_the_user(self, line, e):
-        return str(e)
-=======
     def _help_the_user(self, line: str, e: Exception):
         # If the user hasn't 
         help_pattern = re.compile(r"\s\.\(")
@@ -137,8 +130,6 @@ class AdaShell(cmd.Cmd):
             for idx in idxToRemove:
                 example.pop(idx)
         return examples
->>>>>>> Stashed changes
-
 
 # Simple shell used for running example code snippets
 class ExampleShell(cmd.Cmd):
