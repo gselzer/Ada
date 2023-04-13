@@ -15,11 +15,21 @@
   #codeList { flex-direction: column; }
   #codeList > li { width: 100%; }
   #codeList > li:hover { background-color: #c8e3bf; color: grey; }
+
   .docelement > h2 { margin: 0.5em 0em; }
   .docelement > p { margin: 0.5em 0em; }
   .description { margin-top: -1em; }
   .entry { margin-top: -1em; padding-left: 2em; }
   .subentry { margin-top: -1em; padding-left: 2em; line-height: 1.4em; }
+
+  .collapse-block { margin: 0.2em 0; }
+  .collapse-block > .collapsible { color: black; background-color: #d0d0d0; text-align: left; cursor: pointer; width: 100%; padding: 1.4em; border: none; }
+  .collapse-block > .active, .collapsible:hover { background-color: #bbb; }
+  .collapse-block > .collapsible:before { content: '\002B'; font-size: 36px; float: right; margin-top: 0px; margin-right: 12px; }
+  .collapse-block > .active:before { content: "\2212"; }
+  .collapse-block > .collapsible > h2 { margin: 0; font-size: 1.4em; }
+  .collapse-block > .collapsible > p { margin: 0; font-size: 1em; }
+  .collapse-block > .content { padding: 0em 0.1em 0em 1.4em; max-height: 0; overflow: hidden; transition: max-height 0.8s ease-out; background-color: #eee; width: 103.44%; }
   
   #imageInput { display: none; }
   .modal-div { background-color: rgba(128, 128, 128, 0.5);  position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
@@ -76,7 +86,7 @@
         span_output.innerHTML = "<p>Oopsy! I didn't understand that. Maybe you meant one of these?</p>"
 
         // collect parameters into dictionary for pretty printing
-        span_output.innerHTML += Object.keys(json).map(ky => {
+        Object.keys(json).forEach(ky => {
           const lines = json[ky].doc.trim().split("\n");
           console.log(lines);
 
@@ -149,10 +159,14 @@
 
           // insert prettified documentation into html
           var prettyString = `<div class="docelement">`
+
+          prettyString += `<div class="collapse-block">`;
+          prettyString += `<div type="button" class="collapsible">`;
           prettyString += `<h2>${ky}</h2>`;
+          prettyString += `<p class="description">${description}</p>`;
+          prettyString += `</div>`;
 
-          prettyString += `<span class="description">${description}</span>`;
-
+          prettyString += `<div class="content">`;
           prettyString += `<p><b>Parameters: </b></p>`; 
           for(var [key, value] of params) {
             prettyString += '<div class="entry">';
@@ -178,10 +192,28 @@
 
           prettyString += "<p>" + examples.split("\n").map(ln => { return `<p>${ln.trim()}</p>`}).join("") + "</p>";
           
-          prettyString += `</div>`;
-          return prettyString;
-        });
+          prettyString += `</div>`; // closes content div
+          prettyString += `</div>`; // closes collapsible div
+          prettyString += `</div>`; // closes docelement div 
 
+          span_output.innerHTML += prettyString;
+      });
+
+      // event handlers for collapsible items
+      var collapsibles = document.getElementsByClassName("collapsible");
+      for (var i = 0; i < collapsibles.length; i++) {
+        collapsibles[i].addEventListener("click", function() {
+          console.log("toggled");
+          this.classList.toggle("active");
+          var content = this.nextElementSibling;
+          console.log(content);
+          if (content.style.maxHeight){
+            content.style.maxHeight = null;
+          } else {
+            content.style.maxHeight = content.scrollHeight + "px";
+          }
+        });
+      }
     } else {
         span_output.innerText = data.output;
 
