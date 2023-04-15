@@ -1,2 +1,4 @@
+# Ignore VSCode
+.vscode
 # Ignore pycache
 __pycache__
