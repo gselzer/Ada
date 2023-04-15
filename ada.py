@@ -55,21 +55,32 @@ class AdaShell(cmd.Cmd):
             "output": None      # Output string to display for the user
         }
         try:
-            execution = str(line) + "\n"
+            execution = f"{line}\n"
             # Add new locals to globals so we can use them later - the only one we DON'T want is 'line'
             execution += """for k, v in locals().copy().items():
                 if k != "line":
                     globals()[k] = v
             """
+            execution += f"\n{line}\n"
             def do_exec():
                 # Finally, execute what we put together above
-                exec(execution, globals(), dict(line = line))
+                # exec(execution, globals(), dict(line = line))
+                # result = eval(compile(execution, '<string>', 'exec'), globals(), dict(line = line))
+                try: 
+                    new_vars = {}
+                    print(eval(compile(line, '<string>', 'eval'), globals(), new_vars))
+                    globals().update(new_vars)
+                except SyntaxError as e:
+                    new_vars = {}
+                    exec(compile(line, '<string>', 'exec'), globals(), new_vars)
+                    globals().update(new_vars)
             
             with CaptureStdout() as output:
                 do_exec()
             out_dict["output"] = output
         except Exception as e:
             # The user failed - help them!
+            print(e)
             out_dict["excepted"] = True
             out_dict["output"] = self._help_the_user(line, e)
         return out_dict
@@ -147,7 +158,7 @@ class ExampleShell(cmd.Cmd):
                 globals()[k] = v
         """
         try:
-            eval(line)
+            out_dict["output"] = eval(line, globals())
         except:
             exec(execution, globals(), dict(line = line))
         
@@ -201,12 +212,10 @@ def runExample():
     lineCount = request.form.get('lineCount')
     for i in range(int(lineCount)):
         temp = sh.process_line(request.form.get(str(i)))["output"]
-        # print(temp)
+        if temp is not None:
+            output += repr(temp) + "\n"
 
-    # print(output)
-    response = make_response(output, 200)
-    response.mimetype = "text/plain"
-    return response
+    return jsonify(output = output)
 
 
 if __name__ == '__main__':
