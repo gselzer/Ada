@@ -2,7 +2,17 @@ from typing import List
 from flask import Flask, render_template, jsonify, request, make_response
 
 app = Flask(__name__)
-import cmd, io, sys
+import atexit, cmd, io, sys, tempfile, re, os
+from types import ModuleType
+import json
+
+# Do some flask app config
+temp_upload_dir = tempfile.TemporaryDirectory(dir='.') # Create temp folder at webroot
+app.config['upload_folder'] = temp_upload_dir.name
+
+def on_exit():
+    temp_upload_dir.cleanup()
+atexit.register(on_exit)
 
 class CaptureStdout(list):
     """
@@ -45,21 +55,32 @@ class AdaShell(cmd.Cmd):
             "output": None      # Output string to display for the user
         }
         try:
-            execution = str(line) + "\n"
+            execution = f"{line}\n"
             # Add new locals to globals so we can use them later - the only one we DON'T want is 'line'
             execution += """for k, v in locals().copy().items():
                 if k != "line":
                     globals()[k] = v
             """
+            execution += f"\n{line}\n"
             def do_exec():
                 # Finally, execute what we put together above
-                exec(execution, globals(), dict(line = line))
+                # exec(execution, globals(), dict(line = line))
+                # result = eval(compile(execution, '<string>', 'exec'), globals(), dict(line = line))
+                try: 
+                    new_vars = {}
+                    print(eval(compile(line, '<string>', 'eval'), globals(), new_vars))
+                    globals().update(new_vars)
+                except SyntaxError as e:
+                    new_vars = {}
+                    exec(compile(line, '<string>', 'exec'), globals(), new_vars)
+                    globals().update(new_vars)
             
             with CaptureStdout() as output:
                 do_exec()
             out_dict["output"] = output
         except Exception as e:
             # The user failed - help them!
+            print(e)
             out_dict["excepted"] = True
             out_dict["output"] = self._help_the_user(line, e)
         return out_dict
@@ -87,10 +108,8 @@ class AdaShell(cmd.Cmd):
                         metadata["returns"] = self._split_section(data[2])
                         metadata["see_also"] = self._split_section(data[3])
                         metadata["Examples"] = self._split_examples(data[4])
-                        # populate_examples(data[4])
                         results[f"{k}.{field}"] = metadata
-        resultsjson = json.dumps(results, indent = 4)
-        return resultsjson
+        return json.dumps(results, indent = 4)
     
     def _split_section(self, section: str) -> List:
         """
@@ -106,14 +125,6 @@ class AdaShell(cmd.Cmd):
         for i in range(1, len(section_split), 2):
             section_elements.append((section_split[i], section_split[i+1]))
         return section_elements
-
-    # def _split_examples(self, example_str: str) -> List:
-    #     examples = []
-    #     ex_docs = [s.strip() for s in re.split('(\n[^>]+\n)', example_str + "\n")]
-    #     for i in range(0, len(ex_docs) - 1, 2):
-    #         examples.append((ex_docs[i], ex_docs[i+1]))
-    #     print(examples)
-    #     return examples
 
     def _split_examples(self, example_str):
         examples = example_str.split('\n\n')
@@ -147,7 +158,7 @@ class ExampleShell(cmd.Cmd):
                 globals()[k] = v
         """
         try:
-            eval(line)
+            out_dict["output"] = eval(line, globals())
         except:
             exec(execution, globals(), dict(line = line))
         
@@ -155,7 +166,6 @@ class ExampleShell(cmd.Cmd):
 
         # print(f'output: {output}')
         # out_dict["output"] = output
-
         return out_dict
 
 # Static shell instance
@@ -173,23 +183,36 @@ def somesupersneakyprocessurlplsdontchange():
     # Send back output
     return jsonify(**ada_dict)
 
+@app.route("/upload", methods=["POST"])
+def upload():
+    file = request.files['image']
+
+    # Find filename to save as
+    filename = file.filename # Technically should validate this for security purposes
+    
+    # Save image
+    save_path = os.path.join(app.config['upload_folder'], filename)
+    file.save(save_path)
+
+    response = {
+        "filename": filename,
+        "image_path": save_path
+    }
+    return jsonify(**response)
+
 # Run example code
 @app.route("/runExample", methods=["POST"])
 def runExample():
-    
     sh = ExampleShell()
     sh.process_line("import numpy as np") # NEED TO CHANGE HERE
 
-    output = ""
+    output = []
     lineCount = request.form.get('lineCount')
     for i in range(int(lineCount)):
         temp = sh.process_line(request.form.get(str(i)))["output"]
-        # print(temp)
-
-    # print(output)
-    response = make_response(output, 200)
-    response.mimetype = "text/plain"
-    return response
+        if temp is not None:
+            output.append(repr(temp))
+    return jsonify(output = output)
 
 
 if __name__ == '__main__':
