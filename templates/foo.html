@@ -113,12 +113,12 @@
     var span_output = document.getElementById('output');
     var span_clean_output = document.getElementById('cleanOutput');
     if (data.output == null) {
-      span_output.innerHTML = "";
       span_clean_output.innerHTML = "";
     } else if (data.excepted) {
         // parse the JSON
         const json = JSON.parse(data.output)
         span_clean_output.innerHTML = "<p>Oopsy! I didn't understand that.</p>"
+        span_output.innerHTML = "";
 
         exampleDict = {};
         // collect parameters into dictionary for pretty printing
