@@ -1,5 +1,9 @@
 <!doctype html>
 <title>Ada</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="https://unpkg.com/sakura.css@1.0.0/css/normalize.css">
 <link rel="stylesheet" href="https://unpkg.com/sakura.css@1.0.0/css/sakura-earthly.css">
 <style>
@@ -19,8 +23,8 @@
   .docelement > h2 { margin: 0.5em 0em; }
   .docelement > p { margin: 0.5em 0em; }
   .description { margin-top: -1em; }
-  .entry { margin-top: -1em; padding-left: 2em; }
-  .subentry { margin-top: -1em; padding-left: 2em; line-height: 1.4em; }
+  .entry { padding-left: 2em; }
+  .subentry { padding-left: 2em; line-height: 1.4em; }
 
   .collapse-block { margin: 0.2em 0; }
   .collapse-block > .collapsible { color: black; background-color: #d0d0d0; text-align: left; cursor: pointer; width: 100%; padding: 1.4em; border: none; }
@@ -29,7 +33,7 @@
   .collapse-block > .active:before { content: "\2212"; }
   .collapse-block > .collapsible > h2 { margin: 0; font-size: 1.4em; }
   .collapse-block > .collapsible > p { margin: 0; font-size: 1em; }
-  .collapse-block > .content { padding: 0em 0.1em 0em 1.4em; max-height: 0; overflow: hidden; transition: max-height 0.8s ease-out; background-color: #eee; width: 103.44%; }
+  .collapse-block > .content { padding: 0em 0.1em 0em 1.4em; max-height: 0; overflow: hidden; transition: max-height 0.5s ease-out; background-color: #eee; width: 103.44%; }
   
   #imageInput { display: none; }
   .modal-div { background-color: rgba(128, 128, 128, 0.5);  position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
@@ -37,26 +41,50 @@
   .upload-menu .code-done { color: grey; user-select: none; cursor: default; }
   .upload-menu .code-selectable:hover { cursor: pointer; }
 </style>
-<hr>
-<p>Welcome to Ada!</p>
-<div id="scriptView">
-  <ul id="codeList">
-  </ul>
-</div>
-<div id="textEdit">
-  <span>
-    <form id="line" style="display: inline-block">
-      <label for="lineEdit">Enter the line here:</label><br>
-      <input type="text" id="lineEdit" name="lineEdit">
-      <input type="submit" value="Enter">
-    </form>
-    <button id="imageUploadButton">Upload image</button>
-    <input type="file" id="imageInput" name="imageInput" accept="image/png, image/jpeg">
-  </span>
-</div>
-<div id="data">
-  <div id="output"></div>
-</div>
+<html style="display: block;">
+  <body style="margin: 0; min-width: 100%;">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-xs-12">
+          <h1 style="margin: 0.5rem">Welcome to Ada!</h1>
+          <sub style="margin: 0.5rem; font-size: 2.5rem">A Documentation Assistant</sub>
+          <hr/>
+          <br/>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-xs-12 col-lg-6 col-xxl-4">
+          <h2>Terminal</h2>
+          <div id="scriptView" style="margin-top: 3rem">
+            <ul id="codeList">
+              <li># Welcome! Type below to get started.</li>
+            </ul>
+          </div>
+          <div id="textEdit">
+            <span>
+              <form id="line" style="display: inline-block; margin-top: -0.5rem;">
+                <input type="text" id="lineEdit" name="lineEdit">
+                <input type="submit" value="Enter">
+              </form>
+              <button id="imageUploadButton">Upload image</button>
+              <input type="file" id="imageInput" name="imageInput" accept="image/png, image/jpeg">
+            </span>
+          </div>
+          <div id="data">
+            <div id="cleanOutput"></div>
+          </div>
+        </div>
+        <div class="col-xs-12 col-lg-6 col-xxl-8">
+          <div id="data">
+            <h2>Suggestions</h2>
+            <p style="margin-bottom: -4rem;">Ada is here to help! As you code, if Python encounters an error, I will leave my suggestions below.</p>
+            <div id="output"></div>
+          </div>
+        </div>
+      </div> 
+    </div>  
+  </body>
+</html>
 
 <script src="https://unpkg.com/promise-polyfill@7.1.2/dist/polyfill.min.js"></script>
 <script src="https://unpkg.com/whatwg-fetch@2.0.4/fetch.js"></script>
@@ -83,16 +111,18 @@
 
   function addShow(data) {
     var span_output = document.getElementById('output');
+    var span_clean_output = document.getElementById('cleanOutput');
     if (data.output == null) {
-      span_output.innerText = "";
+      span_clean_output.innerHTML = "";
     } else if (data.excepted) {
         // parse the JSON
         const json = JSON.parse(data.output)
-        span_output.innerHTML = "<p>Oopsy! I didn't understand that. Maybe you meant one of these?</p>"
+        span_clean_output.innerHTML = "<p>Oopsy! I didn't understand that.</p>"
+        span_output.innerHTML = "";
 
         exampleDict = {};
         // collect parameters into dictionary for pretty printing
-        Object.keys(json).forEach(ky => {
+        Object.keys(json).forEach((ky, hi) => {
           const lines = json[ky].doc.trim().split("\n");
           console.log(lines);
 
@@ -162,9 +192,10 @@
           console.log(returns);
           console.log(see_also);
           console.log(examples);
+          console.log(exampleDict)
 
           // insert prettified documentation into html
-          var prettyString = `<div class="docelement">`
+          var prettyString = `<div class="docelement" style="margin-top: 5rem">`
 
           prettyString += `<div class="collapse-block">`;
           prettyString += `<div type="button" class="collapsible">`;
@@ -172,7 +203,7 @@
           prettyString += `<p class="description">${description}</p>`;
           prettyString += `</div>`;
 
-          prettyString += `<div class="content">`;
+          prettyString += `<div class="content" style="width: 100%">`;
           prettyString += `<p><b>Parameters: </b></p>`; 
           for(var [key, value] of params) {
             prettyString += '<div class="entry">';
@@ -200,6 +231,7 @@
           // console.log(json[ky]["Examples"])
 
           exampleDict[ky] = json[ky]["Examples"]
+          prettyString += `<div id="examples-${hi}">`
           for(i = 0; i < json[ky]["Examples"].length; i += 1) {
             example_id = ky + i
             example_ids.push(example_id)
@@ -215,11 +247,13 @@
             prettyString += '<p id=example-result-' + example_id + '>\n</p>'
           }      
           
+          prettyString += `</div>`; // closes example div
           prettyString += `</div>`; // closes content div
           prettyString += `</div>`; // closes collapsible div
           prettyString += `</div>`; // closes docelement div 
 
           span_output.innerHTML += prettyString;
+          span_output.innerHTML += `<button style="float: right; margin-top: -0.1rem" onclick="document.getElementsByClassName('collapsible')[${hi}].dispatchEvent(new MouseEvent('click', {'view': window, 'bubbles': true, 'cancelable': false})); setTimeout(() => {document.getElementById('examples-${hi}').scrollIntoView({'behavior': 'smooth'})}, 600)">Jump to Example</button>`;
         });
 
       // event handlers for collapsible items
@@ -254,7 +288,9 @@
       }
 
     } else {
-        span_output.innerText = data.output;
+
+        const out = data.output.filter(d => d !== "None");
+        span_clean_output.innerText = out;
 
         // Create a new line for the script view
         line_edit = document.getElementById("lineEdit");

@@ -7,3 +7,7 @@ dependencies:
   - numpy
   - python
   - requests  # TODO: Do we actually need this?
+  - pip
+  - pip:
+    - docstring-parser
+  
