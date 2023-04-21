@@ -1,3 +1,4 @@
+from docstring_parser import DocstringMeta, parse
 from typing import List
 from flask import Flask, render_template, jsonify, request, make_response
 
@@ -102,14 +103,36 @@ class AdaShell(cmd.Cmd):
                         metadata = {}
                         doc = getattr(v, field).__doc__
                         metadata["doc"] = doc
-                        data = [s.strip() for s in re.split('\n\n\s*[a-zA-z ]+\n\s*[-]+\n\s*', getattr(v, field).__doc__)]
-                        metadata["description"] = data[0]
-                        metadata["parameters"] = self._split_section(data[1])
-                        metadata["returns"] = self._split_section(data[2])
-                        metadata["see_also"] = self._split_section(data[3])
-                        metadata["Examples"] = self._split_examples(data[4])
+                        data = parse(doc)
+                        # data = [s.strip() for s in re.split('\n\n\s*[a-zA-z ]+\n\s*[-]+\n\s*', getattr(v, field).__doc__)]
+                        try:
+                            metadata["description"] = data.short_description
+                        except Exception:
+                            metadata["description"] = ""
+                        try:
+                            metadata["parameters"] = [(param.arg_name, param.description) for param in data.params]
+                        except Exception:
+                            metadata["parameters"] = ""
+                        try:
+                            metadata["returns"] = [(data.returns.return_name, data.returns.description)]
+                        except Exception:
+                            metadata["returns"] = ""
+                        try:
+                            metadata["see_also"] = self._split_section(next((item.description for item in data.meta if item.args == ["see_also"]), ""))
+                        except Exception:
+                            metadata["see_also"] = ""
+                        try:
+                            metadata["Examples"] = [e.snippet.split("\n") for e in data.examples]
+                        except Exception:
+                            metadata["Examples"] = ""
                         results[f"{k}.{field}"] = metadata
         return json.dumps(results, indent = 4)
+    
+    def _get_see_also(self, data):
+        for item in data.meta:
+            if isinstance(item, DocstringMeta):
+                return item
+        return None
     
     def _split_section(self, section: str) -> List:
         """
