@@ -1,5 +1,6 @@
 from typing import List
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, make_response
+
 app = Flask(__name__)
 import atexit, cmd, io, sys, tempfile, re, os
 from types import ModuleType
@@ -24,7 +25,7 @@ class CaptureStdout(list):
     def __exit__(self, *args):
         self.extend(self._stringio.getvalue().splitlines())
         del self._stringio    # free up some memory
-        sys.stdout = self._stdout
+        sys.stdout = self._stdout   
 
 class AdaShell(cmd.Cmd):
     intro = 'Ada Shell is happy to help!.   Type help or ? to list commands.\n'
@@ -54,21 +55,32 @@ class AdaShell(cmd.Cmd):
             "output": None      # Output string to display for the user
         }
         try:
-            execution = str(line) + "\n"
+            execution = f"{line}\n"
             # Add new locals to globals so we can use them later - the only one we DON'T want is 'line'
             execution += """for k, v in locals().copy().items():
                 if k != "line":
                     globals()[k] = v
             """
+            execution += f"\n{line}\n"
             def do_exec():
                 # Finally, execute what we put together above
-                exec(execution, globals(), dict(line = line))
+                # exec(execution, globals(), dict(line = line))
+                # result = eval(compile(execution, '<string>', 'exec'), globals(), dict(line = line))
+                try: 
+                    new_vars = {}
+                    print(eval(compile(line, '<string>', 'eval'), globals(), new_vars))
+                    globals().update(new_vars)
+                except SyntaxError as e:
+                    new_vars = {}
+                    exec(compile(line, '<string>', 'exec'), globals(), new_vars)
+                    globals().update(new_vars)
             
             with CaptureStdout() as output:
                 do_exec()
             out_dict["output"] = output
         except Exception as e:
             # The user failed - help them!
+            print(e)
             out_dict["excepted"] = True
             out_dict["output"] = self._help_the_user(line, e)
         return out_dict
@@ -114,12 +126,47 @@ class AdaShell(cmd.Cmd):
             section_elements.append((section_split[i], section_split[i+1]))
         return section_elements
 
-    def _split_examples(self, example_str: str) -> List:
-        examples = []
-        ex_docs = [s.strip() for s in re.split('(\n[^>]+\n)', example_str + "\n")]
-        for i in range(0, len(ex_docs) - 1, 2):
-            examples.append((ex_docs[i], ex_docs[i+1]))
+    def _split_examples(self, example_str):
+        examples = example_str.split('\n\n')
+        examples = [example.split('\n') for example in examples]
+        # Split examples into blocks
+        # Delete output strings
+        for example in examples:
+            idxToRemove = []
+            for i in range(len(example)):
+                example[i] = example[i].strip()
+                if not example[i].startswith(">>>"):
+                    idxToRemove.append(i)
+            idxToRemove.reverse()
+            for idx in idxToRemove:
+                example.pop(idx)
         return examples
+
+# Simple shell used for running example code snippets
+class ExampleShell(cmd.Cmd):
+    def default(self, line):
+        self.process_line(line)
+    
+    def process_line(self, line):
+        out_dict = {
+            "excepted": False, 
+            "output": None    
+        }
+        execution = str(line) + "\n"
+        execution += """for k, v in locals().copy().items():
+            if k != "line":
+                globals()[k] = v
+        """
+        try:
+            out_dict["output"] = eval(line, globals())
+        except:
+            exec(execution, globals(), dict(line = line))
+        
+        # with CaptureStdout() as output:
+
+        # print(f'output: {output}')
+        # out_dict["output"] = output
+        return out_dict
 
 # Static shell instance
 ada = AdaShell()
@@ -152,6 +199,21 @@ def upload():
         "image_path": save_path
     }
     return jsonify(**response)
+
+# Run example code
+@app.route("/runExample", methods=["POST"])
+def runExample():
+    sh = ExampleShell()
+    sh.process_line("import numpy as np") # NEED TO CHANGE HERE
+
+    output = []
+    lineCount = request.form.get('lineCount')
+    for i in range(int(lineCount)):
+        temp = sh.process_line(request.form.get(str(i)))["output"]
+        if temp is not None:
+            output.append(repr(temp))
+    return jsonify(output = output)
+
 
 if __name__ == '__main__':
     AdaShell().cmdloop()

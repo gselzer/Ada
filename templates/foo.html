@@ -60,8 +60,13 @@
 
 <script src="https://unpkg.com/promise-polyfill@7.1.2/dist/polyfill.min.js"></script>
 <script src="https://unpkg.com/whatwg-fetch@2.0.4/fetch.js"></script>
-<!-- <script src="{{url_for('static', filename='image_upload.js')}}"></script> -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js" integrity="sha512-8RnEqURPUc5aqFEN04aQEiPlSAdE0jlFS/9iGgUyNtwFnSKCXhmB6ZTNl7LnDtDWKabJIASzXrzD0K+LYexU9g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css" integrity="sha512-uf06llspW44/LZpHzHT6qBOIVODjWtv4MxCricRxkzvopAlSWnTf6hpZTFxuuZcuNE9CBQhqE0Seu1CoRk84nQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/python/python.min.js" integrity="sha512-2M0GdbU5OxkGYMhakED69bw0c1pW3Nb0PeF3+9d+SnwN1ryPx3wiDdNqK3gSM7KAU/pEV+2tFJFbMKjKAahOkQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
+  var example_ids = []
+  var codemirrors = {}
+
   function submitLine(ev) {
     ev.preventDefault();
     fetch({{ url_for('somesupersneakyprocessurlplsdontchange')|tojson }}, {
@@ -85,6 +90,7 @@
         const json = JSON.parse(data.output)
         span_output.innerHTML = "<p>Oopsy! I didn't understand that. Maybe you meant one of these?</p>"
 
+        exampleDict = {};
         // collect parameters into dictionary for pretty printing
         Object.keys(json).forEach(ky => {
           const lines = json[ky].doc.trim().split("\n");
@@ -100,7 +106,6 @@
           let section = "description";       // what section in docstring we are at
           for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
-            console.log(line);
             if(line.includes("Parameters") && lines[i+1].includes("-------")) {
                 section = "parameters";
                 currentParam = "";
@@ -151,6 +156,7 @@
               }
             }
           }
+
           console.log(description);
           console.log(params);
           console.log(returns);
@@ -190,14 +196,31 @@
             prettyString += '</div>';
           }
 
-          prettyString += "<p>" + examples.split("\n").map(ln => { return `<p>${ln.trim()}</p>`}).join("") + "</p>";
+          prettyString += `<p><b>Examples: </b></p>`; 
+          // console.log(json[ky]["Examples"])
+
+          exampleDict[ky] = json[ky]["Examples"]
+          for(i = 0; i < json[ky]["Examples"].length; i += 1) {
+            example_id = ky + i
+            example_ids.push(example_id)
+            var example = json[ky]["Examples"][i];
+            prettyString += '<textarea id=example-' + example_id + ' rows="4" cols="50">'
+            for(var codeLine of example) {
+              slicedCodeLine = codeLine.slice(4)
+              prettyString += slicedCodeLine + '\n'
+            }
+            prettyString += '</textarea>'
+            // prettyString += '<p>-</p>'
+            prettyString += '<button onclick="runExample(\'' + example_id + '\')" style="float: right;">Run</button>'
+            prettyString += '<p id=example-result-' + example_id + '>\n</p>'
+          }      
           
           prettyString += `</div>`; // closes content div
           prettyString += `</div>`; // closes collapsible div
           prettyString += `</div>`; // closes docelement div 
 
           span_output.innerHTML += prettyString;
-      });
+        });
 
       // event handlers for collapsible items
       var collapsibles = document.getElementsByClassName("collapsible");
@@ -214,6 +237,22 @@
           }
         });
       }
+      
+      for (var example_id of example_ids) {
+        var myTextArea = document.getElementById('example-' + example_id);
+        var myCodeMirror = CodeMirror.fromTextArea(myTextArea, {
+          lineNumbers: true,
+          mode: "python",
+          styleActiveLine: true,
+          matchBrackets: true,
+          theme: 'monokai',
+          height: '10px'
+        });
+        myCodeMirror.setSize("100%", "100%")
+        codemirrors[example_id] = myCodeMirror
+        runExample(example_id)
+      }
+
     } else {
         span_output.innerText = data.output;
 
@@ -229,6 +268,34 @@
         // Also, clear the input box
         line_edit.value = "";
     }
+  }
+  
+  // Run the example through backend's ExampleShell
+  async function runExample(example_id) {
+    cm = codemirrors[example_id]
+    cm.save()
+    var codes = cm.getTextArea().value
+    // var codes = document.getElementById("example-" + example_id).value
+    codes = codes.split('\n')
+
+    let formdata = new FormData()
+    for (var i = 0; i < codes.length; i++) {
+      formdata.append(i, codes[i])      
+    }
+    formdata.append('lineCount', codes.length)
+
+    fetch({{ url_for('runExample')|tojson }}, {
+      method: 'POST',
+      body: formdata
+    }).then(parseJSON).then( data => {
+      var result = ''
+      for (var line of data.output) {
+        result += line
+        result += '<br>'
+      }
+      document.getElementById("example-result-" + example_id).innerHTML = result
+    });
+
   }
 
   var form = document.getElementById('line');
