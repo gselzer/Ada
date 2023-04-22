@@ -88,44 +88,55 @@ class AdaShell(cmd.Cmd):
     
     def _help_the_user(self, line: str, e: Exception):
         # If the user hasn't 
-        help_pattern = re.compile(r"\s\.\(")
-        if not help_pattern.match(line):
+        help_pattern = re.compile("^[\s\(]")
+        if not help_pattern.search(line):
             return self._help_api(line, e)
 
         return json.dumps(e, indent = 4) 
     
     def _help_api(self, line: str, e: Exception):
         results = {}
-        for k, v in globals().items():
-            if isinstance(v, ModuleType):
-                for field in getattr(v, "__all__", []): 
-                    if line in field:
-                        metadata = {}
-                        doc = getattr(v, field).__doc__
-                        metadata["doc"] = doc
-                        data = parse(doc)
-                        # data = [s.strip() for s in re.split('\n\n\s*[a-zA-z ]+\n\s*[-]+\n\s*', getattr(v, field).__doc__)]
-                        try:
-                            metadata["description"] = data.short_description
-                        except Exception:
-                            metadata["description"] = ""
-                        try:
-                            metadata["parameters"] = [(param.arg_name, param.description) for param in data.params]
-                        except Exception:
-                            metadata["parameters"] = ""
-                        try:
-                            metadata["returns"] = [(data.returns.return_name, data.returns.description)]
-                        except Exception:
-                            metadata["returns"] = ""
-                        try:
-                            metadata["see_also"] = self._split_section(next((item.description for item in data.meta if item.args == ["see_also"]), ""))
-                        except Exception:
-                            metadata["see_also"] = ""
-                        try:
-                            metadata["Examples"] = [e.snippet.split("\n") for e in data.examples]
-                        except Exception:
-                            metadata["Examples"] = ""
-                        results[f"{k}.{field}"] = metadata
+        parts = line.split('.')
+        if len(parts) == 1:
+            # look through all modules
+            modules = [v for k, v in globals().items() if isinstance(v, ModuleType)]
+        else:
+            module = globals()
+            try:
+                for part in parts[:-1]:
+                    module = module[part]
+                    # TODO: Another place to help
+            except Exception as e:
+                return ""
+            modules = [module]
+        for module in modules:
+            for field in getattr(module, "__all__", []): 
+                if parts[-1] in field:
+                    metadata = {}
+                    doc = getattr(module, field).__doc__
+                    metadata["doc"] = doc
+                    data = parse(doc)
+                    try:
+                        metadata["description"] = data.short_description
+                    except Exception:
+                        metadata["description"] = ""
+                    try:
+                        metadata["parameters"] = [(param.arg_name, param.description) for param in data.params]
+                    except Exception:
+                        metadata["parameters"] = ""
+                    try:
+                        metadata["returns"] = [(data.returns.return_name, data.returns.description)]
+                    except Exception:
+                        metadata["returns"] = ""
+                    try:
+                        metadata["see_also"] = self._split_section(next((item.description for item in data.meta if item.args == ["see_also"]), ""))
+                    except Exception:
+                        metadata["see_also"] = ""
+                    try:
+                        metadata["Examples"] = [e.snippet.split("\n") for e in data.examples]
+                    except Exception:
+                        metadata["Examples"] = ""
+                    results[f"{module.__name__}.{field}"] = metadata
         return json.dumps(results, indent = 4)
     
     def _get_see_also(self, data):
