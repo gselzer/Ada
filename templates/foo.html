@@ -253,7 +253,13 @@
           prettyString += `</div>`; // closes docelement div 
 
           span_output.innerHTML += prettyString;
-          span_output.innerHTML += `<button style="float: right; margin-top: -0.1rem ${json[ky]["Examples"].length == 0 ? "; display: none" : ""}" onclick="document.getElementsByClassName('collapsible')[${hi}].dispatchEvent(new MouseEvent('click', {'view': window, 'bubbles': true, 'cancelable': false})); setTimeout(() => {document.getElementById('examples-${hi}').scrollIntoView({'behavior': 'smooth'})}, 600)">Jump to Example</button>`;
+          if (json[ky]["Examples"].length > 0) {
+            onClick = `document.getElementsByClassName('collapsible')[${hi}].dispatchEvent(new MouseEvent('click', {'view': window, 'bubbles': true, 'cancelable': false})); setTimeout(() => {document.getElementById('examples-${hi}').scrollIntoView({'behavior': 'smooth'})}, 600)`
+          }
+          else {
+            onClick = `window.open('https://stackoverflow.com/search?q=${ky}','_blank')`
+          }
+          span_output.innerHTML += `<button style="float: right; margin-top: -0.1rem" onclick="${onClick}">${json[ky]["Examples"].length > 0 ? "Jump to Example" : "Check StackOverflow"}</button>`;
         });
 
       // event handlers for collapsible items
