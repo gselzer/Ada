@@ -75,7 +75,7 @@
           </div>
         </div>
         <div class="col-xs-12 col-lg-6 col-xxl-8">
-          <div id="data">
+          <div id="data" style="height: 70vh; max-height: 70vh; overflow-y: auto; border: 'black'">
             <h2>Suggestions</h2>
             <p style="margin-bottom: -4rem;">Ada is here to help! As you code, if Python encounters an error, I will leave my suggestions below.</p>
             <div id="output"></div>
@@ -244,6 +244,7 @@
             prettyString += '</textarea>'
             // prettyString += '<p>-</p>'
             prettyString += '<button onclick="runExample(\'' + example_id + '\')" style="float: right;">Run</button>'
+            prettyString += `<button onclick="document.getElementById('lineEdit').value = document.getElementById('example-${example_id}').value">Use</button>`
             prettyString += '<p id=example-result-' + example_id + '>\n</p>'
           }      
           
