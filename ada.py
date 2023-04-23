@@ -100,11 +100,12 @@ class AdaShell(cmd.Cmd):
         if len(parts) == 1:
             # look through all modules
             modules = [v for k, v in globals().items() if isinstance(v, ModuleType)]
+
         else:
-            module = globals()
+            module = globals()[parts[0]]
             try:
-                for part in parts[:-1]:
-                    module = module[part]
+                for part in parts[1:-1]:
+                    module = getattr(module, part)
                     # TODO: Another place to help
             except Exception as e:
                 return ""
@@ -133,7 +134,16 @@ class AdaShell(cmd.Cmd):
                     except Exception:
                         metadata["see_also"] = ""
                     try:
-                        metadata["Examples"] = [e.snippet.split("\n") for e in data.examples]
+                        whole_examples = []
+                        current_example = ""
+                        for e in data.examples:
+                            current_example = current_example + "\n" + e.snippet
+                            if parts[-1] in e.snippet:
+                                whole_examples.append(current_example)
+                                current_example = ""
+                        if current_example != "":
+                            whole_examples.append(current_example)
+                        metadata["Examples"] = [ list(filter(None, ex.split("\n"))) for ex in whole_examples]
                     except Exception:
                         metadata["Examples"] = ""
                     results[f"{module.__name__}.{field}"] = metadata
@@ -193,7 +203,7 @@ class ExampleShell(cmd.Cmd):
         """
         try:
             out_dict["output"] = eval(line, globals())
-        except:
+        except Exception as e:
             exec(execution, globals(), dict(line = line))
         
         # with CaptureStdout() as output:
@@ -237,16 +247,19 @@ def upload():
 # Run example code
 @app.route("/runExample", methods=["POST"])
 def runExample():
-    sh = ExampleShell()
-    sh.process_line("import numpy as np") # NEED TO CHANGE HERE
+    try:
+        sh = ExampleShell()
+        sh.process_line("import numpy as np") # NEED TO CHANGE HERE
 
-    output = []
-    lineCount = request.form.get('lineCount')
-    for i in range(int(lineCount)):
-        temp = sh.process_line(request.form.get(str(i)))["output"]
-        if temp is not None:
-            output.append(repr(temp))
-    return jsonify(output = output)
+        output = []
+        lineCount = request.form.get('lineCount')
+        for i in range(int(lineCount)):
+            temp = sh.process_line(request.form.get(str(i)))["output"]
+            if temp is not None:
+                output.append(repr(temp))
+        return jsonify(output = output)
+    except Exception as e:
+        return jsonify()
 
 
 if __name__ == '__main__':
