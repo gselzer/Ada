@@ -19,7 +19,9 @@
   #codeList { flex-direction: column; }
   #codeList > li { width: 100%; }
   #codeList > li:hover { background-color: #c8e3bf; color: grey; }
+  #output { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: left; max-width: 100%; margin: 0 auto; }
 
+  .docelement { max-width: calc(50% - 10px); transition: max-width 0.5s ease-out; }
   .docelement > h2 { margin: 0.5em 0em; }
   .docelement > p { margin: 0.5em 0em; }
   .description { margin-top: -1em; }
@@ -27,13 +29,13 @@
   .subentry { padding-left: 2em; line-height: 1.4em; }
 
   .collapse-block { margin: 0.2em 0; }
-  .collapse-block > .collapsible { color: black; background-color: #d0d0d0; text-align: left; cursor: pointer; width: 100%; padding: 1.4em; border: none; }
+  .collapse-block > .collapsible { color: black; background-color: #d0d0d0; text-align: left; cursor: pointer; width: 100%; padding: 0.8em; border: none; }
   .collapse-block > .active, .collapsible:hover { background-color: #bbb; }
-  .collapse-block > .collapsible:before { content: '\002B'; font-size: 36px; float: right; margin-top: 0px; margin-right: 12px; }
+  .collapse-block > .collapsible:before { content: '\002B'; font-size: 24px; float: right; margin-top: -4px; margin-right: 12px; }
   .collapse-block > .active:before { content: "\2212"; }
-  .collapse-block > .collapsible > h2 { margin: 0; font-size: 1.4em; }
+  .collapse-block > .collapsible > h2 { margin: 0; font-size: 0.9em; display: inline-block; }
   .collapse-block > .collapsible > p { margin: 0; font-size: 1em; }
-  .collapse-block > .content { padding: 0em 0.1em 0em 1.4em; max-height: 0; overflow: hidden; transition: max-height 0.5s ease-out; background-color: #eee; width: 103.44%; }
+  .collapse-block > .content { padding: 1.2em 0.1em 0em 1.4em; max-height: 0; overflow: hidden; transition: max-height 0.5s ease-out; background-color: #eee; width: 103.44%; visibility: hidden; }
   
   #imageInput { display: none; }
   .modal-div { background-color: rgba(128, 128, 128, 0.5);  position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
@@ -77,7 +79,7 @@
         <div class="col-xs-12 col-lg-6 col-xxl-8">
           <div id="data" style="height: 70vh; max-height: 70vh; overflow-y: auto; border: 'black'">
             <h2>Suggestions</h2>
-            <p style="margin-bottom: -4rem;">Ada is here to help! As you code, if Python encounters an error, I will leave my suggestions below.</p>
+            <p style="margin-bottom: 0rem;">Ada is here to help! As you code, if Python encounters an error, I will leave my suggestions below.</p>
             <div id="output"></div>
           </div>
         </div>
@@ -195,15 +197,15 @@
           console.log(exampleDict)
 
           // insert prettified documentation into html
-          var prettyString = `<div class="docelement" style="margin-top: 5rem">`
+          var prettyString = `<div class="docelement" style="margin-top: 0.5rem">`
 
           prettyString += `<div class="collapse-block">`;
           prettyString += `<div type="button" class="collapsible">`;
           prettyString += `<h2>${ky}</h2>`;
-          prettyString += `<p class="description">${description}</p>`;
           prettyString += `</div>`;
 
           prettyString += `<div class="content" style="width: 100%">`;
+          prettyString += `<p class="description">${description}</p>`;
           prettyString += `<p><b>Parameters: </b></p>`; 
           for(var [key, value] of params) {
             prettyString += '<div class="entry">';
@@ -248,19 +250,20 @@
             prettyString += '<p id=example-result-' + example_id + '>\n</p>'
           }      
           
-          prettyString += `</div>`; // closes example div
-          prettyString += `</div>`; // closes content div
-          prettyString += `</div>`; // closes collapsible div
-          prettyString += `</div>`; // closes docelement div 
-
-          span_output.innerHTML += prettyString;
           if (json[ky]["Examples"].length > 0) {
             onClick = `document.getElementsByClassName('collapsible')[${hi}].dispatchEvent(new MouseEvent('click', {'view': window, 'bubbles': true, 'cancelable': false})); setTimeout(() => {document.getElementById('examples-${hi}').scrollIntoView({'behavior': 'smooth'})}, 600)`
           }
           else {
             onClick = `window.open('https://stackoverflow.com/search?q=${ky}','_blank')`
           }
-          span_output.innerHTML += `<button style="float: right; margin-top: -0.1rem" onclick="${onClick}">${json[ky]["Examples"].length > 0 ? "Jump to Example" : "Check StackOverflow"}</button>`;
+
+          prettyString += `</div>`; // closes example div
+          prettyString += `</div>`; // closes content div
+          prettyString += `</div>`; // closes collapsible div
+          prettyString += `<button style="float: right; margin-top: -2.2rem" onclick="${onClick}">${json[ky]["Examples"].length > 0 ? "Jump to Example" : "Check StackOverflow"}</button>`;
+          prettyString += `</div>`; // closes docelement div 
+
+          span_output.innerHTML += prettyString;
         });
 
       // event handlers for collapsible items
@@ -271,10 +274,19 @@
           this.classList.toggle("active");
           var content = this.nextElementSibling;
           console.log(content);
+          var grandparentElement = event.target.parentElement.parentElement;
+          var jumpButton = this.parentElement.nextElementSibling;
           if (content.style.maxHeight){
             content.style.maxHeight = null;
+            content.style.visibility = "hidden";
+            grandparentElement.style.maxWidth = "calc(50% - 10px)";
+            jumpButton.style.visibility = "visible";
+            //grandparent.style.transition = "max-width 
           } else {
             content.style.maxHeight = content.scrollHeight + "px";
+            content.style.visibility = "visible";
+            grandparentElement.style.maxWidth = "100%";
+            jumpButton.style.visibility = "hidden";
           }
         });
       }
