@@ -32,6 +32,5 @@ docker push ctnelson1997/ada
 
 ```bash
 sudo docker pull ctnelson1997/ada
-sudo docker run --restart=always -d -e ENV_NAME=ada -p 5000:5000 ctnelson1997/ada
-
+sudo docker run --restart=always -d -p 5000:5000 ctnelson1997/ada
 ```

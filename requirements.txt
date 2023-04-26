@@ -1,0 +1,5 @@
+flask
+numpy
+requests
+docstring-parser
+opencv-python-headless

@@ -339,7 +339,7 @@
     }
     formdata.append('lineCount', codes.length)
 
-    fetch({{ url_for('runExample')|tojson }}, {
+    fetch({{ url_for('somesupersneakyrunexampleplsdontchange')|tojson }}, {
       method: 'POST',
       body: formdata
     }).then(parseJSON).then( data => {
@@ -481,7 +481,7 @@
     form_data = new FormData();
     form_data.append("image", file);
 
-    fetch({{ url_for("upload")|tojson }}, {
+    fetch({{ url_for("somesupersneakyuploadplsdontchange")|tojson }}, {
       method: "POST",
       body: form_data
     }).then((response) => response.json(), () => console.error("Failed to upload user-provided file"))

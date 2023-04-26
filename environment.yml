@@ -10,4 +10,4 @@ dependencies:
   - pip
   - pip:
     - docstring-parser
-  
+    - opencv-python

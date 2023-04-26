@@ -1,7 +1,9 @@
-FROM mambaorg/micromamba:1.4.1
-ARG MAMBA_DOCKERFILE_ACTIVATE=1
-COPY . ./
-RUN micromamba create -n ada && \
-  micromamba install -y -n ada -f environment.yml && \ 
-  micromamba clean --all --yes
+FROM ubuntu:22.04
+RUN apt-get -y update
+RUN apt-get -y install python3 python3-pip
+# RUN apt-get -y install python3-opencv # no need to get beefy!
+WORKDIR /usr/src/app
+COPY requirements.txt ./
+RUN pip3 install --no-cache-dir -r requirements.txt
+COPY . .
 CMD ["flask", "--app", "ada", "run", "--host", "0.0.0.0"]

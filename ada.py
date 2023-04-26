@@ -81,8 +81,8 @@ class AdaShell(cmd.Cmd):
             out_dict["output"] = output
         except Exception as e:
             # The user failed - help them!
-            print(e)
             out_dict["excepted"] = True
+            print(e)
             out_dict["output"] = self._help_the_user(line, e)
         return out_dict
     
@@ -217,8 +217,8 @@ def somesupersneakyprocessurlplsdontchange():
     # Send back output
     return jsonify(**ada_dict)
 
-@app.route("/upload", methods=["POST"])
-def upload():
+@app.route("/somesupersneakyuploadplsdontchange", methods=["POST"])
+def somesupersneakyuploadplsdontchange():
     file = request.files['image']
 
     # Find filename to save as
@@ -235,8 +235,8 @@ def upload():
     return jsonify(**response)
 
 # Run example code
-@app.route("/runExample", methods=["POST"])
-def runExample():
+@app.route("/somesupersneakyrunexampleplsdontchange", methods=["POST"])
+def somesupersneakyrunexampleplsdontchange():
     sh = ExampleShell()
     sh.process_line("import numpy as np") # NEED TO CHANGE HERE
 
